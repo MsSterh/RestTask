@@ -14,6 +14,7 @@ import json.JsonDSL._
 object RestService extends RestHelper {
   serve {
     case "fib" :: AsInt(num) :: _ Get _ => ("response" -> fib(num)) : JObject
+    case "google-body" :: _ Get _ => ("response" -> Google.responseSHA) : JObject
   }
 
   private def fib(n: Int) = {
@@ -24,4 +25,20 @@ object RestService extends RestHelper {
 
     fibTR(n, 1, 0)
   }
+
+  private object Google {
+    import dispatch._
+    import com.ning.http.client.AsyncHttpClientConfig
+
+    val http = Http.configure { config: AsyncHttpClientConfig.Builder =>
+      config.setFollowRedirects(true)
+    }
+
+    lazy val msgDigest = java.security.MessageDigest.getInstance("SHA-1")
+
+    def responseBody: String = http(url("http://www.google.com") OK as.String)()
+
+    def responseSHA: String = msgDigest.digest(responseBody.getBytes).map("%02x".format(_)).reduce(_ + _)
+  }
+
 }
